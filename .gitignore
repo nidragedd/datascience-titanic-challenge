@@ -1,0 +1,6 @@
+*/*.pyc
+*.pyc
+.idea/*
+.ipynb_checkpoints/*
+datasets/*
+results/*
