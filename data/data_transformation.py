@@ -29,15 +29,9 @@ def transform_and_create_new_features(df):
     dummies_embarked = pd.get_dummies(df['Embarked'], prefix='Embarked')
     df = pd.concat([df, dummies_embarked], axis=1)
 
-    # 'AGE' FEATURE MANAGEMENT
-    df['AgeRange'] = df['Age']
-    df = df.apply(_build_age_range, axis='columns')
-    df['Age'] = df['AgeRange'].\
-        map({'0-10': 1, '10-15': 2, '15-25': 3, '25-40': 4, '40-60': 5, '60-70': 6, '70-77': 7, '>77': 8}).astype(int)
-
-    # 'FARE' FEATURE MANAGEMENT
-    df = df.apply(_build_fare_range, axis='columns')
-    df['Fare'] = df['Fare'].astype(int)
+    # 'AGE' & 'FARE' FEATURES MANAGEMENT
+    df = _transform_age_feature(df)
+    df = _transform_fare_feature(df)
 
     # CREATION OF A NEW FEATURE: Family size + Alone or not ?
     df['Family'] = df['SibSp'] + df['Parch']
@@ -45,8 +39,51 @@ def transform_and_create_new_features(df):
     df.loc[df['Family'] == 0, 'Alone'] = 1
 
     # Drop all columns that are now useless
-    df = df.drop(['Sex', 'Embarked', 'AgeRange', 'SibSp', 'Parch'], axis=1)
+    df = df.drop(['Sex', 'Age', 'Fare', 'Embarked', 'SibSp', 'Parch'], axis=1)
     print(df.head(10))
+
+    return df
+
+
+def _transform_age_feature(df):
+    """
+    Transform the 'Age' feature by splitting the Age values into arbitrary ranges and then creating dummies so that our
+    model will not put more importance on 8 value than 5 for example.
+    :param df: (pandas Dataframe) a given dataset on which we will apply our modifications
+    :return: (pandas Dataframe) a new dataset on which operations have been made
+    """
+    df = df.apply(_build_age_range, axis='columns')
+    dummies_age = pd.get_dummies(df['Age'], prefix='Age')
+    print("For dataset with shape {}, the dummies for 'Age' are: {}".format(df.shape, dummies_age.columns))
+    df = pd.concat([df, dummies_age], axis=1)
+
+    # Ensure that all dummies are created and that 'Training' and 'Test' datasets will have same number of columns. In
+    # our case, 'Age_8' will not be created for 'Test' dataset. We could create it by hand but it is more robust to test
+    # all cases
+    # For 'Age', range has been splitted in 8
+    for i in range(8):
+        if 'Age_{}'.format(i) not in df:
+            df['Age_{}'.format(i)] = 0
+
+    return df
+
+
+def _transform_fare_feature(df):
+    """
+    Transform the 'Fare' feature which is a 'continuous' variable into a categorical one (with dummies so that there is
+    no importance for the order)
+    :param df: (pandas Dataframe) a given dataset on which we will apply our modifications
+    :return: (pandas Dataframe) a new dataset on which operations have been made
+    """
+    df = df.apply(_build_fare_range, axis='columns')
+    dummies_fare = pd.get_dummies(df['Fare'], prefix='Fare')
+    print("For dataset with shape {}, the dummies for 'Fare' are: {}".format(df.shape, dummies_fare.columns))
+    df = pd.concat([df, dummies_fare], axis=1)
+
+    # 'Fare' has been splitted in 4
+    for i in range(4):
+        if 'Fare_{}'.format(i) not in df:
+            df['Fare_{}'.format(i)] = 0
 
     return df
 
@@ -57,26 +94,27 @@ def _build_age_range(row):
     :param row: the row to update
     :return: updated row with a string value in AgeRange feature based on its value in Age
     """
-    val = ''
-    if 0 < row.Age <= 10:
-        val = '0-10'
+    val = 0
+    if row.Age <= 10:
+        val = 0
     elif 10 < row.Age <= 15:
-        val = '10-15'
+        val = 1
     elif 15 < row.Age <= 25:
-        val = '15-25'
+        val = 2
     elif 25 < row.Age <= 40:
-        val = '25-40'
+        val = 3
     elif 40 < row.Age <= 60:
-        val = '40-60'
+        val = 4
     elif 60 < row.Age <= 70:
-        val = '60-70'
+        val = 5
     elif 70 < row.Age <= 77:
-        val = '70-77'
+        val = 6
+    elif row.Age > 77:
+        val = 7
     elif pd.isnull(row.Age):
-        val = 'N/A'
-    else:
-        val = '>77'
-    row.AgeRange = val
+        val = 9
+
+    row.Age = val
     return row
 
 
