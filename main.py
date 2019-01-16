@@ -12,7 +12,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from data.data_preparation import build_fare_means, build_age_table, handle_missing_values
-from data.data_transformation import transform_and_create_new_features
+from data.data_transformation import transform_and_create_new_features, specific_normalization
+from models.deep import build_and_train_nn
 from models.randomforest import build_and_train_rf
 from utils import constants
 from utils.load_and_save import build_and_save_from_output
@@ -46,23 +47,19 @@ def train_and_predict(model_name):
 
     train_df = train_df.drop(['PassengerId'], axis=1)
 
-    print("---------  Build training and test splits  --------")
-    train_split, test_split = train_test_split(train_df, test_size=0.25, random_state=42)
-    X_train = train_split.drop(['Survived'], axis=1)
-    Y_train = train_split['Survived']
-    X_test = test_split.drop(['Survived'], axis=1)
-    Y_test = test_split['Survived']
-
     model = None
     if model_name == constants.MODEL_RANDOMFOREST:
-        model = build_and_train_rf(train_df, True)
+        model = build_and_train_rf(train_df)
+    elif model_name == constants.MODEL_NEURALNETWORK:
+        model = build_and_train_nn(train_df)
+        test_df = specific_normalization(test_df)
 
     # Time for prediction !
     # Apply the trained model to the test data (omitting the column PassengerId) to produce an output of predictions.
     X_prediction = test_df.drop("PassengerId", axis=1).copy()
     predictions = model.predict(X_prediction)
 
-    build_and_save_from_output(test_df, predictions, 'titanic_1-1-v5-rf_with_dummies')
+    build_and_save_from_output(test_df, predictions, 'titanic_1-1-v5-{}_with_dummies'.format(model_name))
 
 
 if __name__ == '__main__':

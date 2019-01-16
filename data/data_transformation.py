@@ -8,6 +8,7 @@ This work is highly inspired by few good readings:
  * Kaggle kernel from Manav Sehgal: https://www.kaggle.com/startupsci/titanic-data-science-solutions
 """
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 
 def transform_and_create_new_features(df):
@@ -133,3 +134,21 @@ def _build_fare_range(row):
         val = 3
     row.Fare = val
     return row
+
+
+def specific_normalization(df):
+    """
+    Depending on the model, sometimes we cannot afford having values which are not normalized. A standard approach is
+    to scale the inputs to have mean 0 and a variance of 1
+    :param df: (pandas Dataframe) the dataset to scale
+    :return: (pandas Dataframe) the scaled dataset
+    """
+    # Need to scale some vars. This is done using a StandardScaler from sklearn package
+    scaler = StandardScaler()
+    df['Pclass'] = df['Pclass'].astype('float64')
+    df['Family'] = df['Family'].astype('float64')
+    # .reshape(-1, 1) is mandatory otherwise an exception is thrown (as 'data has a single feature')
+    df['Pclass'] = scaler.fit_transform(df['Pclass'].values.reshape(-1, 1))
+    df['Family'] = scaler.fit_transform(df['Family'].values.reshape(-1, 1))
+
+    return df
