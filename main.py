@@ -8,13 +8,15 @@ This work is highly inspired by few good readings:
  * Kaggle kernel from Manav Sehgal: https://www.kaggle.com/startupsci/titanic-data-science-solutions
 """
 import argparse
+import datetime
+
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 from data.data_preparation import build_fare_means, build_age_table, handle_missing_values
 from data.data_transformation import transform_and_create_new_features, specific_normalization
 from models.deep import build_and_train_nn
 from models.randomforest import build_and_train_rf
+from models.xgb import build_and_train_xgb
 from utils import constants
 from utils.load_and_save import build_and_save_from_output
 
@@ -52,6 +54,11 @@ def train_and_predict(model_name):
         model = build_and_train_rf(train_df)
     elif model_name == constants.MODEL_NEURALNETWORK:
         model = build_and_train_nn(train_df)
+    elif model_name == constants.MODEL_XGBOOST:
+        model = build_and_train_xgb(train_df)
+
+    # Specific normalization for models that requires it
+    if model_name in constants.NORMALIZATION_MODEL:
         test_df = specific_normalization(test_df)
 
     # Time for prediction !
@@ -59,7 +66,8 @@ def train_and_predict(model_name):
     X_prediction = test_df.drop("PassengerId", axis=1).copy()
     predictions = model.predict(X_prediction)
 
-    build_and_save_from_output(test_df, predictions, 'titanic_1-1-v5-{}_with_dummies'.format(model_name))
+    ts = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}"
+    build_and_save_from_output(test_df, predictions, 'titanic_{}-{}'.format(model_name, ts))
 
 
 if __name__ == '__main__':
